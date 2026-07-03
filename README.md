@@ -66,6 +66,14 @@ Golden eval set (~40 Q&A pairs with reference answers, in `data/eval/`). Metrics
 Results are written to `results/` as a table: every config scored, best combo highlighted.
 That table is the deliverable.
 
+## Demo
+
+![Banking Assistant chat interface showing a grounded SEPA answer with sources and a guardrail refusal for an out-of-scope question](assets/demo.png)
+
+The assistant answers banking questions grounded in retrieved sources, and refuses
+out-of-scope questions instead of hallucinating.
+
+
 ## Repo layout
 
 ```
