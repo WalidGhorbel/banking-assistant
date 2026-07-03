@@ -1,0 +1,25 @@
+# --- ingestion ---
+trafilatura>=1.8
+requests>=2.31
+pdfplumber>=0.11
+# playwright>=1.44        # optional: only for JS-rendered pages (run `playwright install chromium`)
+
+# --- data / eval queries ---
+datasets>=2.19            # to pull Banking77 (PolyAI, CC-BY-4.0)
+
+# --- chunking / retrieval ---
+langchain-text-splitters>=0.2   # recursive / fixed splitters
+sentence-transformers>=3.0      # embeddings + cross-encoder reranker
+rank-bm25>=0.2                  # BM25 lexical retrieval
+qdrant-client>=1.9              # vector store
+
+# --- generation ---
+# choose your LLM client, e.g.:
+# google-generativeai>=0.7      # Gemini
+# openai>=1.30
+
+# --- evaluation ---
+deepeval>=1.0
+
+# --- utils ---
+pyyaml>=6.0

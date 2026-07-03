@@ -1,0 +1,33 @@
+# One point in the 3x3 benchmark grid.
+name: recursive_hybrid
+
+chunking:
+  strategy: recursive        # fixed | recursive | semantic
+  size: 800
+  overlap: 120
+
+embedding:
+  model: all-MiniLM-L6-v2    # swap for a Gemini embedding model or bge-large
+  normalize: true
+
+vector_store:
+  backend: qdrant            # fixed infra choice (not benchmarked)
+  collection: banking_recursive
+
+retrieval:
+  method: hybrid             # dense | hybrid | hybrid_rerank
+  top_k_dense: 20
+  top_k_bm25: 20
+  fuse: rrf                  # reciprocal rank fusion
+  final_k: 5
+  reranker: null             # e.g. BAAI/bge-reranker-base when method = hybrid_rerank
+
+generation:
+  model: gemini-2.0-flash    # or your chosen LLM
+  grounded_only: true        # answer only from context; refuse if absent
+  cite_sources: true
+
+guardrails:
+  refuse_out_of_scope: true
+  no_personal_financial_advice: true
+  no_account_actions: true

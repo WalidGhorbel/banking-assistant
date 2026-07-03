@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Banking Assistant</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2130;
+    --panel-2: #222b3d;
+    --accent: #4f8cff;
+    --accent-soft: #2a3550;
+    --text: #e8edf5;
+    --muted: #8a97ad;
+    --user: #4f8cff;
+    --bot: #222b3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  header {
+    width: 100%; max-width: 760px; padding: 20px 16px 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #7b5cff);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  header p { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+  #chat {
+    width: 100%; max-width: 760px; flex: 1; overflow-y: auto;
+    padding: 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .msg { max-width: 82%; padding: 12px 15px; border-radius: 16px; line-height: 1.5; font-size: 15px; }
+  .user { align-self: flex-end; background: var(--user); border-bottom-right-radius: 4px; }
+  .bot { align-self: flex-start; background: var(--bot); border-bottom-left-radius: 4px; }
+  .sources { margin-top: 10px; font-size: 13px; }
+  .sources summary { cursor: pointer; color: var(--muted); user-select: none; }
+  .source-item {
+    margin-top: 8px; padding: 8px 10px; background: var(--panel);
+    border-left: 3px solid var(--accent); border-radius: 6px; color: var(--muted);
+  }
+  .source-item b { color: var(--text); display: block; margin-bottom: 3px; font-size: 12px; }
+  .typing { color: var(--muted); font-style: italic; }
+  form {
+    width: 100%; max-width: 760px; padding: 12px 16px 20px;
+    display: flex; gap: 10px;
+  }
+  input {
+    flex: 1; padding: 13px 16px; border-radius: 12px; border: 1px solid var(--accent-soft);
+    background: var(--panel); color: var(--text); font-size: 15px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    padding: 0 20px; border: none; border-radius: 12px; background: var(--accent);
+    color: white; font-weight: 600; font-size: 15px; cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .hint { color: var(--muted); font-size: 13px; align-self: center; margin: auto 0; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">B</div>
+    <div>
+      <h1>Banking Assistant</h1>
+      <p>Ask about SEPA, IBAN, cards, accounts — answers grounded in our sources</p>
+    </div>
+  </header>
+
+  <div id="chat">
+    <div class="hint">👋 Try: "How long does a SEPA transfer take?" or "What do I need to open an account?"</div>
+  </div>
+
+  <form id="form">
+    <input id="input" placeholder="Type your question..." autocomplete="off" />
+    <button id="send" type="submit">Send</button>
+  </form>
+
+<script>
+  const chat = document.getElementById("chat");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const send = document.getElementById("send");
+
+  function addMsg(text, cls) {
+    const div = document.createElement("div");
+    div.className = "msg " + cls;
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  function addSources(container, sources) {
+    if (!sources || !sources.length) return;
+    const details = document.createElement("details");
+    details.className = "sources";
+    const summary = document.createElement("summary");
+    summary.textContent = `📎 ${sources.length} source${sources.length > 1 ? "s" : ""}`;
+    details.appendChild(summary);
+    sources.forEach(s => {
+      const item = document.createElement("div");
+      item.className = "source-item";
+      const b = document.createElement("b");
+      b.textContent = s.title || s.chunk_id;
+      item.appendChild(b);
+      item.appendChild(document.createTextNode(s.text));
+      details.appendChild(item);
+    });
+    container.appendChild(details);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q) return;
+    const hint = chat.querySelector(".hint");
+    if (hint) hint.remove();
+
+    addMsg(q, "user");
+    input.value = "";
+    send.disabled = true;
+
+    const typing = addMsg("Thinking...", "bot");
+    typing.classList.add("typing");
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q }),
+      });
+      const data = await res.json();
+      typing.classList.remove("typing");
+      typing.textContent = data.answer;
+      addSources(typing, data.sources);
+    } catch (err) {
+      typing.classList.remove("typing");
+      typing.textContent = "Sorry, something went wrong. Is the server running?";
+    } finally {
+      send.disabled = false;
+      input.focus();
+    }
+  });
+</script>
+</body>
+</html>

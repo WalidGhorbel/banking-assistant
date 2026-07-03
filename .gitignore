@@ -1,0 +1,17 @@
+# Fetched public content is NOT committed — only the fetch script is.
+# The self-authored FAQ is force-kept below.
+data/processed/
+data/raw/*
+!data/raw/neobank_faq.jsonl
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Local vector store / caches
+qdrant_storage/
+.deepeval/
+results/*.tmp
