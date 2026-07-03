@@ -15,3 +15,6 @@ venv/
 qdrant_storage/
 .deepeval/
 results/*.tmp
+
+setup_project.ps1
+write_index.ps1
