@@ -65,6 +65,8 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
 
+REFUSAL_MARKER = "I don't have that information in my sources"
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
@@ -72,16 +74,23 @@ def chat(req: ChatRequest) -> ChatResponse:
     hits = retrieve(req.message, cfg)
     gen = generate_answer(req.message, hits, cfg)
 
-    sources = [
-        Source(
-            title=h.get("title", ""),
-            text=h.get("text", "")[:400],
-            chunk_id=h.get("chunk_id", ""),
-        )
-        for h in hits
-    ]
-    return ChatResponse(answer=gen["answer"], sources=sources)
+    answer = gen["answer"]
 
+    # If the assistant refused (answer not grounded in context),
+    # don't show sources — they weren't actually used.
+    if REFUSAL_MARKER.lower() in answer.lower():
+        sources: list[Source] = []
+    else:
+        sources = [
+            Source(
+                title=h.get("title", ""),
+                text=h.get("text", "")[:400],
+                chunk_id=h.get("chunk_id", ""),
+            )
+            for h in hits
+        ]
+
+    return ChatResponse(answer=answer, sources=sources)
 
 @app.get("/")
 def index() -> FileResponse:
