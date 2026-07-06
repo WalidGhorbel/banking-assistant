@@ -98,8 +98,6 @@ Evaluation uses [DeepEval](https://github.com/confident-ai/deepeval) with a gold
 | Neobank FAQ | Self-authored (`data/raw/neobank_faq.jsonl`) | This repo (MIT) | Conversational support layer |
 | Client table | Synthetic (`src/gen_clients.py`) | This repo (MIT) | 500 fake clients for the data assistant |
 
-Fetched public content is not committed — only the fetch script (`src/ingest.py`) is. The self-authored FAQ and the synthetic client data are safe to publish.
-
 ## Running it
 
 ```bash
