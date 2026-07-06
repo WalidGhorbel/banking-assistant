@@ -95,8 +95,8 @@ Evaluation uses [DeepEval](https://github.com/confident-ai/deepeval) with a gold
 |-------|--------|---------|------|
 | Payments / regulatory | Deutsche Bundesbank SEPA pages | Public-sector info | Term-dense corpus (IBAN, BIC, SEPA) |
 | Government FAQ (PDF) | DPMA SEPA leaflet | Government document | Exercises the PDF ingestion path |
-| Neobank FAQ | Self-authored (`data/raw/neobank_faq.jsonl`) | This repo (MIT) | Conversational support layer |
-| Client table | Synthetic (`src/gen_clients.py`) | This repo (MIT) | 500 fake clients for the data assistant |
+| Neobank FAQ | Self-authored (`data/raw/neobank_faq.jsonl`) | This repo  | Conversational support layer |
+| Client table | Synthetic (`src/gen_clients.py`) | This repo  | 500 fake clients for the data assistant |
 
 ## Running it
 
