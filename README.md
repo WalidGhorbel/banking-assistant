@@ -4,7 +4,7 @@ A European retail-banking assistant that handles two different kinds of question
 
 The two question types are handled by two different backends, and a small router decides which one each question goes to. The router pairs fast keyword rules with a multi-class semantic fallback that classifies unusual phrasings by *intent*. The retrieval side is also set up as a benchmark of RAG methods rather than a single fixed pipeline, so the choice of chunking and retrieval strategy is measured rather than assumed.
 
-Everything runs on openly-licensed or self-generated data, so the whole repo is safe to publish.
+Everything the repo *ships* is self-generated (the synthetic client table) or self-authored (the neobank FAQ). The public banking sources — Bundesbank and DPMA pages — are fetched at build time under their own reuse terms rather than redistributed, so the repo is safe to publish.
 
 ## Demo
 
@@ -95,12 +95,14 @@ Evaluation uses [DeepEval](https://github.com/confident-ai/deepeval) with a gold
 
 ## Data sources
 
-| Layer | Source | Licence | Role |
-|-------|--------|---------|------|
-| Payments / regulatory | Deutsche Bundesbank SEPA pages | Public-sector info | Term-dense corpus (IBAN, BIC, SEPA) |
-| Government FAQ (PDF) | DPMA SEPA leaflet | Government document | Exercises the PDF ingestion path |
-| Neobank FAQ | Self-authored (`data/raw/neobank_faq.jsonl`) | This repo  | Conversational support layer |
-| Client table | Synthetic (`src/gen_clients.py`) | This repo  | 500 fake clients for the data assistant |
+| Layer | Source | Terms | In the repo? | Role |
+|-------|--------|-------|--------------|------|
+| Payments / regulatory | Deutsche Bundesbank SEPA pages | © Bundesbank — reuse with source citation, unaltered, free of charge | No — fetched by `ingest.py` at build time | Term-dense corpus (IBAN, BIC, SEPA) |
+| Government FAQ (PDF) | DPMA SEPA leaflet | German public-authority document — reuse under its own terms | No — fetched at build time | Exercises the PDF ingestion path |
+| Neobank FAQ | Self-authored (`data/raw/neobank_faq.jsonl`) | This repo's licence | Yes — original content | Conversational support layer |
+| Client table | Synthetic (`src/gen_clients.py`) | This repo's licence | Yes — generated, no real data | 500 fake clients for the data assistant |
+
+The Bundesbank and DPMA material is pulled in by `ingest.py` when you build the corpus; the fetched and processed text (`data/processed/`) is `.gitignore`d rather than committed, so the repo redistributes only self-authored and synthetic data. Answers that draw on the fetched sources cite them. See [LICENSE](LICENSE) for the terms covering this repo's own code and data.
 
 ## Running it
 
@@ -168,4 +170,4 @@ data/eval/          golden Q&A set
 
 ## Notes
 
-This is a demonstration built on synthetic and public data. It isn't a production banking system and gives no financial advice. Gemini's free tier is tight on rate limits — the app runs fine on it for interactive use, but the RAG evaluation is easier to run with billing enabled.
+This is a demonstration built on synthetic data and public banking sources used under their own reuse terms (with attribution, and fetched rather than redistributed). It isn't a production banking system and gives no financial advice. Gemini's free tier is tight on rate limits — the app runs fine on it for interactive use, but the RAG evaluation is easier to run with billing enabled.
