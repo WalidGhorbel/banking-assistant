@@ -17,7 +17,7 @@ import os
 from google import genai
 from google.genai import types
 
-DEFAULT_GEN_MODEL = "gemini-2.5-flash"
+DEFAULT_GEN_MODEL = "gemini-2.5-flash-lite"
 
 SYSTEM_INSTRUCTION = (
     "You are a helpful assistant for a European retail bank. "
@@ -37,6 +37,7 @@ def _build_prompt(query: str, hits: list[dict]) -> str:
     context = "\n\n".join(blocks) if blocks else "(no context retrieved)"
     return f"Context passages:\n\n{context}\n\nQuestion: {query}\n\nAnswer:"
 
+import time
 
 def generate_answer(query: str, hits: list[dict], cfg: dict | None = None) -> dict:
     cfg = cfg or {}
@@ -45,16 +46,26 @@ def generate_answer(query: str, hits: list[dict], cfg: dict | None = None) -> di
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     prompt = _build_prompt(query, hits)
 
-    resp = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            temperature=0.0,
-            max_output_tokens=400,
-        ),
-    )
-
+    resp = None
+    for attempt in range(3):
+        try:
+            resp = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.0,
+                    max_output_tokens=400,
+                ),
+            )
+            break
+        except Exception as e:
+            msg = str(e)
+            if "503" in msg or "UNAVAILABLE" in msg or "overloaded" in msg.lower():
+                if attempt < 2:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+            raise
     return {
         "answer": (resp.text or "").strip(),
         "contexts": [h["text"] for h in hits],

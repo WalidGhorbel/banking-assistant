@@ -1,11 +1,12 @@
 """
-FastAPI backend for the banking RAG chatbot.
+FastAPI backend for the banking assistant.
 
-Wraps the existing retrieve + generate pipeline behind a /chat endpoint and
-serves the static frontend. Run:
+Routes each question:
+  - data question  -> structured-data query layer (exact pandas, no LLM math)
+  - text question  -> RAG pipeline (retrieve + grounded generate)
 
+Run:
     uvicorn src.app:app --reload --port 8000
-
 Then open http://localhost:8000
 """
 
@@ -22,15 +23,16 @@ from pydantic import BaseModel
 
 from src.retrieve import retrieve
 from src.generate import generate_answer
+from src.router import route
 
-# --- config: adjust if your collection / chunks path differ ---
 COLLECTION = os.environ.get("RAG_COLLECTION", "banking_recursive")
 CHUNKS_PATH = os.environ.get("RAG_CHUNKS", "data/processed/chunks_recursive.jsonl")
 METHOD = os.environ.get("RAG_METHOD", "hybrid_rerank")
 
 FRONTEND_DIR = Path("frontend")
+REFUSAL_MARKER = "I don't have that information in my sources"
 
-app = FastAPI(title="Banking RAG Assistant")
+app = FastAPI(title="Banking Assistant")
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,40 +65,49 @@ class Source(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    kind: str            # "data" or "text"
     sources: list[Source]
-
-REFUSAL_MARKER = "I don't have that information in my sources"
+    chart: dict | None = None   # structured data for optional charting
+    wants_chart: bool = False   # user explicitly asked for a chart
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    cfg = _cfg()
-    hits = retrieve(req.message, cfg)
-    gen = generate_answer(req.message, hits, cfg)
+    question = req.message
 
+    # 1) try the structured-data router first
+    routed = route(question)
+    if routed["kind"] == "data":
+        return ChatResponse(
+            answer=routed["text"],
+            kind="data",
+            sources=[],
+            chart=routed.get("chart"),
+            wants_chart=routed.get("wants_chart", False),
+        )
+
+    # 2) otherwise, RAG
+    cfg = _cfg()
+    hits = retrieve(question, cfg)
+    gen = generate_answer(question, hits, cfg)
     answer = gen["answer"]
 
-    # If the assistant refused (answer not grounded in context),
-    # don't show sources — they weren't actually used.
     if REFUSAL_MARKER.lower() in answer.lower():
         sources: list[Source] = []
     else:
         sources = [
-            Source(
-                title=h.get("title", ""),
-                text=h.get("text", "")[:400],
-                chunk_id=h.get("chunk_id", ""),
-            )
+            Source(title=h.get("title", ""), text=h.get("text", "")[:400],
+                   chunk_id=h.get("chunk_id", ""))
             for h in hits
         ]
 
-    return ChatResponse(answer=answer, sources=sources)
+    return ChatResponse(answer=answer, kind="text", sources=sources, chart=None)
+
 
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(str(FRONTEND_DIR / "index.html"))
 
 
-# serve any other static assets (css/js) if you split them out later
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")

@@ -45,7 +45,9 @@ def build_index(chunks_path: str, collection: str, model_name: str = DEFAULT_MOD
     vectors = model.encode(texts, normalize_embeddings=True, show_progress_bar=True)
 
     client = QdrantClient(path=QDRANT_PATH)
-    client.recreate_collection(
+    if client.collection_exists(collection):
+        client.delete_collection(collection)
+    client.create_collection(
         collection_name=collection,
         vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
     )
