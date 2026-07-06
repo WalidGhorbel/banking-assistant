@@ -88,7 +88,6 @@ The retrieval side is built to compare methods, not to ship one. Two axes are va
 
 Evaluation uses [DeepEval](https://github.com/confident-ai/deepeval) with a golden Q&A set, scoring faithfulness, answer relevancy, and contextual precision/recall. `src/evaluate.py` runs a method and writes its scores to `results/`.
 
-One finding is worth stating plainly: on the small, clean FAQ corpus all three retrieval methods score about the same. Hybrid's advantage only shows up once the term-dense Bundesbank SEPA pages are added, where BM25's exact-term matching starts to matter. Hybrid isn't universally better — it depends on the corpus and the query — and measuring that trade-off is the point of the benchmark.
 
 ## Data sources
 

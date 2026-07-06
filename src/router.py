@@ -23,13 +23,13 @@ import sys
 try:
     from query_clients import (
         client_summary, client_category, category_totals,
-        top_spenders, average_by, client_count, distribution,
+        top_spenders, average_by, client_count, distribution, wealth_summary,
         resolve_category, CATEGORIES, CATEGORY_ALIASES,
     )
 except ImportError:
     from src.query_clients import (
         client_summary, client_category, category_totals,
-        top_spenders, average_by, client_count, distribution,
+        top_spenders, average_by, client_count, distribution, wealth_summary,
         resolve_category, CATEGORIES, CATEGORY_ALIASES,
     )
 
@@ -147,31 +147,61 @@ def route(question: str, use_semantic: bool = True) -> dict:
             result["routed_by"] = "rules"
         return result
 
-    # 2) semantic fallback: rules didn't match, but embedding similarity might
-    #    recognise an unusually-phrased data question. Only re-route if we can
-    #    actually resolve it to a concrete data answer; otherwise stay on RAG.
+    # 2) semantic fallback: rules didn't match. Use the multi-class semantic
+    #    router to pick a specific intent, then dispatch to that query.
     if use_semantic:
         try:
-            from semantic_router import route_semantically
+            from semantic_router import classify
         except ImportError:
-            from src.semantic_router import route_semantically
-        is_data, score, _ = route_semantically(q)
-        if is_data:
-            result = _route_data(q)
-            # only accept if the data path produced a real answer
-            if result.get("kind") == "data" and result.get("data") is not None:
+            from src.semantic_router import classify
+        intent, score, _ = classify(q)
+        if intent and intent != "knowledge":
+            result = _dispatch_intent(intent, q)
+            if result and result.get("kind") == "data":
                 result["wants_chart"] = wants_chart(q)
-                result["routed_by"] = "semantic"
+                result["routed_by"] = f"semantic:{intent}"
                 return result
-            # semantic said "data" but we can't resolve specifics -> give the
-            # most useful general data answer we can: overall category totals
-            fallback = category_totals(None)
-            fallback["wants_chart"] = wants_chart(q)
-            fallback["routed_by"] = "semantic_fallback"
-            return {"kind": "data", **fallback}
 
     # 3) knowledge question -> RAG
     return {"kind": "text"}
+
+
+def _dispatch_intent(intent: str, q: str) -> dict | None:
+    """Map a semantic intent to a concrete query call."""
+    category = _find_category(q)
+    filters = _find_filters(q)
+    dist_field = _find_distribution_field(q)
+
+    if intent == "wealth":
+        return {"kind": "data", **wealth_summary()}
+    if intent == "count":
+        return {"kind": "data", **client_count(filters)}
+    if intent == "category_totals":
+        return {"kind": "data", **category_totals(filters)}
+    if intent == "distribution":
+        field = dist_field or "city"
+        return {"kind": "data", **distribution(field)}
+    if intent == "top_spenders":
+        cat = category or "groceries"
+        return {"kind": "data", **top_spenders(cat, _find_number(q), filters)}
+    if intent == "average_by":
+        cat = category or "groceries"
+        group = "account_tier"
+        if re.search(r"\bcity\b", q.lower()):
+            group = "city"
+        return {"kind": "data", **average_by(group, cat)}
+    if intent == "client_spend_category" and category:
+        m = CLIENT_RE.search(q)
+        if m:
+            return {"kind": "data", **client_category(m.group(0), category)}
+        return {"kind": "data", **category_totals(filters)}
+    if intent == "client_summary":
+        m = CLIENT_RE.search(q)
+        if m:
+            return {"kind": "data", **client_summary(m.group(0))}
+        # no specific client named -> a sensible general overview
+        return {"kind": "data", **category_totals(filters)}
+    return None
 
 
 def _route_data(q: str) -> dict:

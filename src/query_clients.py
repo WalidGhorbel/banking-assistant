@@ -146,6 +146,22 @@ def average_by(group_col: str, category: str) -> dict:
                       "values": [round(float(v), 2) for v in grp.values.tolist()]}}
 
 
+def wealth_summary(n: int = 5) -> dict:
+    """Balance overview: average, and the top-n clients by balance."""
+    df = _df()
+    avg = float(df["balance"].mean())
+    top = df.nlargest(n, "balance")[["client_id", "name", "balance"]]
+    lines = [f"{r['name']} ({r['client_id']}): EUR {r['balance']:,.2f}"
+             for _, r in top.iterrows()]
+    text = (f"Average client balance is EUR {avg:,.2f}. "
+            f"Top {n} by balance:\n" + "\n".join(lines))
+    return {"text": text,
+            "data": {"average_balance": round(avg, 2), "top": top.to_dict("records")},
+            "chart": {"type": "bar", "title": f"Top {n} clients by balance",
+                      "labels": [r["name"] for _, r in top.iterrows()],
+                      "values": [round(float(r["balance"]), 2) for _, r in top.iterrows()]}}
+
+
 def client_count(filters: dict | None = None) -> dict:
     df = _apply_filters(_df(), filters)
     scope = _describe_filters(filters, len(df))
