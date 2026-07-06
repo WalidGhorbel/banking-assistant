@@ -14,7 +14,7 @@ Knowledge questions get grounded answers with sources, and out-of-scope question
 
 Data questions are answered with exact figures from the client table, and charts appear on request or from a button under any data answer:
 
-![Structured-data answers with charts](assets/structured data.png)
+![Structured-data answers with charts](assets/structureddata.png)
 
 ## How it works
 
