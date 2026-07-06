@@ -170,4 +170,4 @@ data/eval/          golden Q&A set
 
 ## Notes
 
-This is a demonstration built on synthetic data and public banking sources used under their own reuse terms (with attribution, and fetched rather than redistributed). It isn't a production banking system and gives no financial advice. Gemini's free tier is tight on rate limits — the app runs fine on it for interactive use, but the RAG evaluation is easier to run with billing enabled.
+This is a demonstration built on synthetic data and public banking sources used under their own reuse terms (with attribution, and fetched rather than redistributed). It isn't a production banking system and gives no financial advice. Gemini's free tier is tight on rate limit.
