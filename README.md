@@ -10,11 +10,11 @@ Everything runs on openly-licensed or self-generated data, so the whole repo is 
 
 Knowledge questions get grounded answers with sources, and out-of-scope questions are refused rather than answered from guesswork:
 
-![RAG answers with sources and a guardrail refusal](assets/rag.png)
+![RAG answers with sources and a guardrail refusal](assets/demo-rag.png)
 
 Data questions are answered with exact figures from the client table, and charts appear on request or from a button under any data answer:
 
-![Structured-data answers with charts](assets/structureddata.png)
+![Structured-data answers with charts](assets/demo-data.png)
 
 ## How it works
 
@@ -42,7 +42,7 @@ A question hits the router, which sends it down the data path or the RAG path. T
 
 ```mermaid
 flowchart TD
-    U[User question] --> R{Router<br/>rule-based, no LLM}
+    U[User question] --> R{Router<br/>rules, then semantic}
     R -->|data question| D1[query_clients.py<br/>exact pandas]
     R -->|knowledge question| G1[retrieve.py<br/>hybrid + rerank]
     D1 --> D2[chart spec<br/>labels + values]
@@ -54,9 +54,9 @@ flowchart TD
     EV[evaluate.py<br/>DeepEval, offline] -.validates.-> G2
 ```
 
-The router is deliberately rule-based rather than an LLM call. It looks for client IDs, spending categories, aggregate words, counts, and distribution fields; anything it doesn't recognise as a data question falls through to the RAG path. Keeping it rule-based makes routing deterministic, free, and easy to debug — and it means data questions never wait on an API.
+The router works in two stages. First a fast rule-based check looks for client IDs, spending categories, aggregate words, counts, and distribution fields. If the rules don't recognise the question, a semantic fallback embeds it and compares it against labelled example questions — so an unusually-phrased data question like "how wealthy are our clients" or "break down customers by region" still gets caught even though it matches no keyword. When the question is clearly closer to the knowledge examples, or the signal is weak, it stays on the RAG path. Rules handle the obvious cases instantly and for free; the embedding fallback catches the rest. Extending it means adding an example sentence, not writing a new rule.
 
-The reason for splitting the two paths at all is that retrieval is the wrong tool for numbers. Embeddings are good at meaning but bad at arithmetic — they can't reliably sum, filter, or rank. So "how much does C0001 spend on groceries" goes to pandas, which computes an exact answer, while "how do SEPA transfers work" goes to retrieval, which is what it's actually good at.
+The reason for splitting the two paths at all is that retrieval is the wrong tool for numbers. Embeddings are good at meaning but bad at arithmetic — they can't reliably sum, filter, or rank. So "how much does C0001 spend on groceries" goes to pandas, which computes an exact answer, while "how do SEPA transfers work" goes to retrieval, which is what it's actually good at. Note the division of labour: embeddings decide *where* a question goes, but the answering is always exact pandas or retrieval — similarity never computes a figure.
 
 ## The two paths
 
@@ -150,7 +150,8 @@ src/
   generate.py       grounded generation with guardrails
   gen_clients.py    synthetic client data generator
   query_clients.py  pandas queries and chart specs
-  router.py         data-vs-knowledge routing
+  router.py         data-vs-knowledge routing (rules + semantic fallback)
+  semantic_router.py  embedding-similarity intent routing
   app.py            FastAPI backend
   evaluate.py       DeepEval benchmark harness
 frontend/

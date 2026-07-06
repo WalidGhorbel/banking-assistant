@@ -136,16 +136,42 @@ def wants_chart(q: str) -> bool:
     return any(w in ql for w in CHART_WORDS)
 
 
-def route(question: str) -> dict:
+def route(question: str, use_semantic: bool = True) -> dict:
     q = question.strip()
 
-    if not looks_like_data_question(q):
-        return {"kind": "text"}
+    # 1) fast rule-based check
+    if looks_like_data_question(q):
+        result = _route_data(q)
+        if result.get("kind") == "data":
+            result["wants_chart"] = wants_chart(q)
+            result["routed_by"] = "rules"
+        return result
 
-    result = _route_data(q)
-    if result.get("kind") == "data":
-        result["wants_chart"] = wants_chart(q)
-    return result
+    # 2) semantic fallback: rules didn't match, but embedding similarity might
+    #    recognise an unusually-phrased data question. Only re-route if we can
+    #    actually resolve it to a concrete data answer; otherwise stay on RAG.
+    if use_semantic:
+        try:
+            from semantic_router import route_semantically
+        except ImportError:
+            from src.semantic_router import route_semantically
+        is_data, score, _ = route_semantically(q)
+        if is_data:
+            result = _route_data(q)
+            # only accept if the data path produced a real answer
+            if result.get("kind") == "data" and result.get("data") is not None:
+                result["wants_chart"] = wants_chart(q)
+                result["routed_by"] = "semantic"
+                return result
+            # semantic said "data" but we can't resolve specifics -> give the
+            # most useful general data answer we can: overall category totals
+            fallback = category_totals(None)
+            fallback["wants_chart"] = wants_chart(q)
+            fallback["routed_by"] = "semantic_fallback"
+            return {"kind": "data", **fallback}
+
+    # 3) knowledge question -> RAG
+    return {"kind": "text"}
 
 
 def _route_data(q: str) -> dict:
