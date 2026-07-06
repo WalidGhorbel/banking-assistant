@@ -10,11 +10,11 @@ Everything runs on openly-licensed or self-generated data, so the whole repo is 
 
 Knowledge questions get grounded answers with sources, and out-of-scope questions are refused rather than answered from guesswork:
 
-![RAG answers with sources and a guardrail refusal](assets/demo-rag.png)
+![RAG answers with sources and a guardrail refusal](assets/rag.png)
 
 Data questions are answered with exact figures from the client table, and charts appear on request or from a button under any data answer:
 
-![Structured-data answers with charts](assets/demo-data.png)
+![Structured-data answers with charts](assets/structured data.png)
 
 ## How it works
 
